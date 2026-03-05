@@ -8,6 +8,11 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 - List at least two concrete bugs you noticed at the start  
   (for example: "the secret number kept changing" or "the hints were backwards").
 
+Initially when i started playing the game it suggested me to enter any number between 1-100 as a guess. The hint suggested me to go higher for each guess and even if I entered 100 it suggested me to go even higher and that's when I realised the hints are not accurate (the actual number was 53). When I put the same number and keep guessing, the hints that are given were inconsistent, once it says higher and once it says lower!
+
+Also when I click on new game, the game doesn't start a new game and gets stuck without allowing me to guess.
+
+The other bug that I noticed was that even when I had one attempt left, the game ended saying I was out of attempts and shows me the answer. Since I have an attempt left, I tried to enter the correct answer but it said the game was over.
 ---
 
 ## 2. How did you use AI as a teammate?
