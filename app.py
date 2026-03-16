@@ -35,8 +35,12 @@ def check_guess(guess, secret):
 
     try:
         if guess > secret:
+            # FIXME: Bug 1 (Reflection Q1): Hint direction is backwards. If guess > secret,
+            # the message should tell the player to go LOWER, not higher.
             return "Too High", "📈 Go HIGHER!"
         else:
+            # FIXME: Bug 1 (Reflection Q1): Hint direction is backwards. If guess < secret,
+            # the message should tell the player to go HIGHER, not lower.
             return "Too Low", "📉 Go LOWER!"
     except TypeError:
         g = str(guess)
@@ -134,6 +138,9 @@ with col3:
 if new_game:
     st.session_state.attempts = 0
     st.session_state.secret = random.randint(1, 100)
+    # FIXME: Bug 2 (Reflection Q1): New Game can get stuck after a win/loss because
+    # status is not reset to "playing" (and other state like history/input may also
+    # need resetting). The app stops early when status != "playing" below.
     st.success("New game started.")
     st.rerun()
 
@@ -156,6 +163,8 @@ if submit:
         st.session_state.history.append(guess_int)
 
         if st.session_state.attempts % 2 == 0:
+            # FIXME: Bug 1 (Reflection Q1): Secret flips between int and str by attempt.
+            # This forces string comparisons and causes inconsistent/broken higher/lower hints.
             secret = str(st.session_state.secret)
         else:
             secret = st.session_state.secret
