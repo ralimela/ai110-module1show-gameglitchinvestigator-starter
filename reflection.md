@@ -44,6 +44,8 @@ I decided a bug was really fixed only if I could reproduce the original problem,
 - How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
 - What change did you make that finally gave the game a stable secret number?
 
+In Streamlit, the script reruns from top to bottom every time you interact with a widget (typing, clicking a button, changing a selectbox). If the secret number is generated with `random.randint(...)` during the normal rerun flow (instead of being stored), it can change unexpectedly because that line runs again. I would explain “reruns” as Streamlit re-executing your Python file to redraw the UI, and `st.session_state` as the place where you keep values you want to persist between those reruns (like a saved game). The change that made the secret stable was keeping it in `st.session_state.secret` and only creating a new random secret when starting a new game (and using the current difficulty range), so normal reruns don’t overwrite it.
+
 ---
 
 ## 5. Looking ahead: your developer habits
@@ -52,3 +54,5 @@ I decided a bug was really fixed only if I could reproduce the original problem,
   - This could be a testing habit, a prompting strategy, or a way you used Git.
 - What is one thing you would do differently next time you work with AI on a coding task?
 - In one or two sentences, describe how this project changed the way you think about AI generated code.
+
+One habit I want to reuse is writing a small regression test right after I fix a bug, so I can prove it’s fixed and prevent it from coming back. I also want to keep refactoring “logic” into helper functions/modules (like `logic_utils.py`) so the UI layer is simpler and easier to test. Next time I use AI, I will be more strict about verifying suggestions by checking the real function outputs/signatures and running tests, instead of assuming the AI’s guess about return types or behavior is correct. This project changed how I view AI-generated code: it’s great for generating ideas and speeding up debugging, but it still needs careful review and testing because small logic mistakes can create very confusing bugs.

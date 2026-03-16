@@ -25,13 +25,23 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 📝 Document Your Experience
 
-- [ ] Describe the game's purpose.
-- [ ] Detail which bugs you found.
-- [ ] Explain what fixes you applied.
+- [x] Describe the game's purpose.
+   - This app is a Streamlit number guessing game where the player tries to guess a secret number within a limited number of attempts, using higher/lower hints.
+
+- [x] Detail which bugs you found.
+   - Hints were incorrect/inconsistent (e.g., a too-high guess could still tell me to go higher, and hints could flip between attempts).
+   - Clicking **New Game** could leave the app in a stuck state after winning/losing (it wouldn’t let me keep guessing).
+   - The UI text always said the guess range was 1–100 even when difficulty changed the actual range.
+
+- [x] Explain what fixes you applied.
+   - Refactored the core game logic into `logic_utils.py` so logic is shared between the Streamlit app and pytest.
+   - Fixed `check_guess` so it returns the correct hint direction (Too High → LOWER, Too Low → HIGHER) using consistent numeric comparison.
+   - Updated the **New Game** handler to reset the relevant `st.session_state` values (status/score/history/secret) so a fresh game starts immediately.
+   - Added/updated pytest coverage (including a small regression test) and confirmed all tests pass.
 
 ## 📸 Demo
 
-- [ ] [Insert a screenshot of your fixed, winning game here]
+- 
 
 ## 🚀 Stretch Features
 
