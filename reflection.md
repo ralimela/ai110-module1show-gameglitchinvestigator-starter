@@ -18,9 +18,13 @@ The other bug that I noticed was that even when I had one attempt left, the game
 ## 2. How did you use AI as a teammate?
 
 - Which AI tools did you use on this project (for example: ChatGPT, Gemini, Copilot)?
-- Give one example of an AI suggestion that was correct (including what the AI suggested and how you verified the result).
-- Give one example of an AI suggestion that was incorrect or misleading (including what the AI suggested and how you verified the result).
+I used GPT-5.2 for most parts of my project 
 
+- Give one example of an AI suggestion that was correct (including what the AI suggested and how you verified the result).
+Copilot suggested that my “higher/lower” hints were wrong because the comparison/hint logic needed to consistently treat the secret as a number and return the correct direction (too high → “LOWER”, too low → “HIGHER”). I implemented that in logic_utils.py and wired the app to use the shared logic. I verified it by running the game (streamlit run app.py) and checking the hints matched my guesses, and by running python -m pytest and seeing all tests pass (including a regression test checking the message contains “LOWER”).
+
+- Give one example of an AI suggestion that was incorrect or misleading (including what the AI suggested and how you verified the result).
+At one point, the AI/test idea assumed check_guess() would return just a string like "Too High" and suggested asserting check_guess(60, 50) == "Too High". That was misleading because my function actually returns a tuple (outcome, message), so that assertion would be testing the wrong thing. I verified this by looking at the return value in logic_utils.py and then fixing the tests in test_game_logic.py to unpack outcome, message; after that change, pytest passed.
 ---
 
 ## 3. Debugging and testing your fixes
@@ -29,6 +33,8 @@ The other bug that I noticed was that even when I had one attempt left, the game
 - Describe at least one test you ran (manual or using pytest)  
   and what it showed you about your code.
 - Did AI help you design or understand any tests? How?
+
+I decided a bug was really fixed only if I could reproduce the original problem, apply the change, and then consistently not reproduce it anymore. For the hint bug, I verified it manually by running `streamlit run app.py` and trying guesses that were clearly above or below the secret to confirm the hint direction stayed correct and didn’t flip between turns. I also verified it with pytest by running `python -m pytest` after adding a small regression test that checks a too-high guess returns the “Too High” outcome and the hint message contains “LOWER”. This showed me my logic was behaving the same way every time and that the test would catch the bug if it came back. AI helped by suggesting what a focused regression test should assert (outcome + key word in the hint), and it also helped me realize I needed to align the tests with the function’s actual return shape.
 
 ---
 
