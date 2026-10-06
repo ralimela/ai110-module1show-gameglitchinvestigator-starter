@@ -7,7 +7,8 @@ app.py only handles UI and session state and calls into these functions.
 DIFFICULTY_RANGES = {
     "Easy": (1, 20),
     "Normal": (1, 100),
-    # FIXED: Hard used to be (1, 50), which made it *easier* than Normal.
+    # FIX (AI-spotted): Hard used to be (1, 50), which made it *easier* than
+    # Normal. Claude suggested widening it to 1-200.
     "Hard": (1, 200),
 }
 
@@ -19,7 +20,8 @@ ATTEMPT_LIMITS = {
 
 HINT_MESSAGES = {
     "Win": "🎉 Correct!",
-    # FIXED: these two messages were swapped. A guess that is too high
+    # FIX: I reported the backwards hints; Claude confirmed these two
+    # messages were swapped. A guess that is too high
     # must tell the player to go LOWER, and vice versa.
     "Too High": "📉 Go LOWER!",
     "Too Low": "📈 Go HIGHER!",
@@ -54,12 +56,14 @@ def parse_guess(raw: str, low: int = None, high: int = None):
     except ValueError:
         return False, None, "That is not a number."
 
-    # FIXED: decimals like "50.9" used to be silently truncated to 50.
+    # FIX (AI-spotted): decimals like "50.9" used to be silently truncated
+    # to 50.
     if not value.is_integer():
         return False, None, "Please enter a whole number."
     value = int(value)
 
-    # FIXED: there was no range check, so guesses like -50 were accepted.
+    # FIX: I reported -50 being accepted; Claude added this range check.
+    # There was no range check, so guesses like -50 were accepted.
     if low is not None and high is not None and not (low <= value <= high):
         return False, None, f"Your guess must be between {low} and {high}."
 
@@ -72,9 +76,10 @@ def check_guess(guess: int, secret: int) -> str:
 
     outcome is one of: "Win", "Too High", "Too Low"
     """
-    # FIXED: app.py used to pass the secret in as a *string* on every
-    # even attempt, which forced an alphabetical comparison ("9" > "80").
-    # Both values are now always compared as integers.
+    # FIX: Refactored into logic_utils.py with Claude Code. app.py used to
+    # pass the secret in as a *string* on every even attempt, which forced
+    # an alphabetical comparison ("9" > "80"). Both values are now always
+    # compared as integers.
     guess, secret = int(guess), int(secret)
 
     if guess == secret:
@@ -96,12 +101,12 @@ def update_score(current_score: int, outcome: str, attempt_number: int):
     attempt_number is 1-based: the first guess of a game is attempt 1.
     """
     if outcome == "Win":
-        # FIXED: used `attempt_number + 1`, which took an extra 10 points
-        # off every win. A first-try win is now worth the full 100.
+        # FIX (AI-spotted): used `attempt_number + 1`, which took an extra 10
+        # points off every win. A first-try win is now worth the full 100.
         points = 100 - 10 * (attempt_number - 1)
         return current_score + max(points, 10)
 
-    # FIXED: "Too High" used to *add* 5 points on even attempts.
+    # FIX (AI-spotted): "Too High" used to *add* 5 points on even attempts.
     # Every wrong guess now costs the same 5 points.
     if outcome in ("Too High", "Too Low"):
         return current_score - 5

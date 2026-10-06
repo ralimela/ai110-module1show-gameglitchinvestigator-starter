@@ -1,8 +1,9 @@
 import random
 import streamlit as st
 
-# FIXED: the game logic used to live in this file, mixed in with the UI.
-# It now lives in logic_utils.py so it can be unit-tested with pytest.
+# FIX: Refactored the game logic out of this file into logic_utils.py using
+# Claude Code (agent mode), so it can be unit-tested with pytest. I reviewed
+# the diff and confirmed the imports below match the moved functions.
 from logic_utils import (
     check_guess,
     get_attempt_limit,
@@ -15,11 +16,13 @@ from logic_utils import (
 
 def start_new_game(low: int, high: int):
     """Reset every piece of per-game session state."""
-    # FIXED: "New Game" used to reset only `attempts` and `secret`. `status`
+    # FIX: Claude traced the stuck "Game over" screen to this handler.
+    # "New Game" used to reset only `attempts` and `secret`. `status`
     # stayed "lost", so the app hit st.stop() forever. score and history were
     # never cleared, and the secret ignored the difficulty's range.
     st.session_state.secret = random.randint(low, high)
-    # FIXED: attempts used to start at 1, which cost the player a guess.
+    # FIX: attempts used to start at 1, which cost the player a guess. I
+    # reported "7 attempts left at the start"; Claude found the off-by-one.
     st.session_state.attempts = 0
     st.session_state.score = 0
     st.session_state.status = "playing"
@@ -53,7 +56,9 @@ if st.session_state.get("difficulty") != difficulty:
 
 st.subheader("Make a guess")
 
-# FIXED: the info box and debug panel used to be drawn *before* the guess was
+# FIX: I noticed the debug panel lagged one guess behind; Claude explained it
+# was a Streamlit rerun ordering issue and suggested st.empty() placeholders.
+# The info box and debug panel used to be drawn *before* the guess was
 # processed, so they always showed the previous turn's values. We reserve
 # their spots on the page here and fill them in at the bottom of the script.
 info_slot = st.empty()
@@ -80,14 +85,15 @@ if submit and st.session_state.status == "playing":
     ok, guess_int, err = parse_guess(raw_guess, low, high)
 
     if not ok:
-        # FIXED: invalid input no longer uses up an attempt.
+        # FIX (AI-suggested): invalid input no longer uses up an attempt.
         st.error(err)
     else:
-        # FIXED: attempts are only counted for valid guesses.
+        # FIX: attempts are only counted for valid guesses.
         st.session_state.attempts += 1
         st.session_state.history.append(guess_int)
 
-        # FIXED: removed the code that turned the secret into a string on
+        # FIX: Claude found this as the hidden cause of my wrong hints and
+        # removed the code that turned the secret into a string on
         # even attempts. check_guess now always compares two ints.
         outcome = check_guess(guess_int, st.session_state.secret)
 
@@ -120,7 +126,8 @@ elif st.session_state.status == "lost":
     st.error("Game over. Start a new game to try again.")
 
 # Everything has been updated for this turn, so draw the up-to-date values.
-# FIXED: the range used to be hardcoded as "1 and 100" for every difficulty.
+# FIX (AI-suggested): the range used to be hardcoded as "1 and 100" for
+# every difficulty.
 info_slot.info(
     f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
