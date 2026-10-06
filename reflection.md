@@ -78,6 +78,8 @@ The app also started without errors using `python -m streamlit run app.py`.
 
 - How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
 
+Every time you click a button or type in a box, Streamlit runs your whole Python script again from top to bottom. That is a "rerun". Normal variables are rebuilt from scratch each time, so a line like `secret = random.randint(1, 100)` would pick a new secret on every click. `st.session_state` is like a notebook that survives between reruns. You check `if "secret" not in st.session_state` and set it only the first time, and after that it stays the same. The biggest lesson for me was that *order matters* because the script runs top to bottom. The "Attempts left" box and the debug panel were drawn before the code that processed my guess, so they always showed the previous turn. I thought the counter was broken, but it was really a display-order problem. We fixed it with `st.empty()` placeholders that are filled in at the end of the script. I also learned that session state only changes when you change it. The "New Game" button reset `attempts` but forgot `status`, so on the next rerun the game still thought it was over.
+
 ---
 
 ## 5. Looking ahead: your developer habits
@@ -86,3 +88,9 @@ The app also started without errors using `python -m streamlit run app.py`.
   - This could be a testing habit, a prompting strategy, or a way you used Git.
 - What is one thing you would do differently next time you work with AI on a coding task?
 - In one or two sentences, describe how this project changed the way you think about AI generated code.
+
+**A habit I want to reuse:** Write down each bug as a reproducible case (input, expected result, actual result) *before* fixing anything, then turn each case into a pytest test. My bug log row "65 with a secret of 89 → Go Lower" became `test_user_reported_case_65_vs_89_says_go_higher`. That way I wasn't just trusting that the fix worked, I had proof that would catch the bug if it came back. I also want to keep checking that a test can fail. Swapping the hint messages back made exactly the 3 hint tests fail, which showed me the tests were really checking the right thing.
+
+**What I would do differently:** I gave the AI all my bugs in one big message and let it fix everything in one pass. The assignment suggested one chat per bug, and next time I would follow that and work on smaller pieces. Big changes across several files are harder to review line by line. I also ended up with fixes I didn't ask for, like changing Hard's range to 1–200, which I accepted without really deciding on them myself. I would also play the game myself after each fix instead of relying only on automated checks.
+
+**How this project changed my view of AI-generated code:** AI-generated code can look clean and confident ("production-ready") while hiding bugs that only appear when you actually use it, like the `try/except` that silently compared numbers as text. I now treat AI code, including code from my own assistant, as a draft to review and test, not as a finished answer.
