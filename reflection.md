@@ -28,11 +28,11 @@ Document at least 3 bugs you found. Add rows as needed.
 - Give one example of an AI suggestion that was correct (including what the AI suggested and how you verified the result).
 - Give one example of an AI suggestion you did not accept as written (including what the AI suggested, why you rejected or changed it, and how you verified your version). It does not have to be a suggestion that was wrong: over-engineered, out of scope, harder to read, or a poor fit for this codebase all count.
 
-**Tools used:** I used Claude Code (Claude Opus 5.5) inside VS Code in agent mode. I gave it my bug notes from section 1 and asked it to find the logic behind each bug. Then I asked it to refactor and fix the code and write pytest tests. The game itself was also written by an AI, so I treated the starter code as "AI suggestions" to review too.
+I used Claude Code in VS Code (agent mode). I pasted in my notes from section 1 about all the bugs I saw and asked it to find what was causing them. After that I asked it to move the logic into logic_utils.py, fix the bugs, and write tests.
 
-**A suggestion that was correct: why my hints were wrong.** I had guessed that the hints were just reversed. Claude found two separate causes. First, the "Go HIGHER!" and "Go LOWER!" messages in `check_guess` were swapped. Second, on every even-numbered attempt `app.py` turned the secret into a string with `str(st.session_state.secret)`. That made `check_guess` hit a `TypeError` and fall back to comparing text alphabetically, where `"9" > "80"` is `True`. Attempts started at 1 and were increased before the check, so my very first guess was always one of these string comparisons. That explains why 65 against 89 said "Go Lower". This was correct because it explained every wrong hint in my log, not just some of them. I verified it with the pytest case `test_user_reported_case_65_vs_89_says_go_higher` (guess 65, secret 89 → "Too Low" / "Go HIGHER!"). I also checked it with `test_string_secret_is_compared_as_a_number`, which checks that `check_guess(9, "80")` returns "Too Low". Both pass, and in a replay of the game, 65 against 89 now says "Go HIGHER!" on the first guess.
+**One suggestion that was correct:** I thought the hints were just backwards, but Claude found there were actually two problems. The "Go HIGHER" and "Go LOWER" messages were swapped. Also, on every second guess, the code turned the secret number into text (a string). When you compare text instead of numbers, "9" counts as bigger than "80" because it only looks at the first character. Since attempts started at 1, my very first guess was always compared as text, which is why 65 told me to go lower when the answer was 89. This made sense because it explained every wrong hint I got, not just some of them. To check it, there is now a test that uses my exact case (guess 65, secret 89) and expects "Go HIGHER", and it passes. When we replayed the game, 65 now says "Go HIGHER" like it should.
 
-**A suggestion I did not accept as written: the starter's `check_guess` design.** The AI-written starter code had `check_guess` return a tuple `(outcome, message)`. It also wrapped the comparison in `try/except TypeError` and fell back to comparing the numbers as strings. I did not keep this as written, for two reasons. First, the starter tests do `assert check_guess(50, 50) == "Win"`, which compares against a plain string, so a tuple can never pass. Second, the `except TypeError` fallback hid a real bug: the string secret should have crashed loudly, but the code silently gave wrong answers instead. In the refactored version in `logic_utils.py`, `check_guess` only returns the outcome and converts both values with `int()`. The hint text moved to a separate `get_hint_message(outcome)` function, which is easier to read and to test. I verified this by running `python -m pytest`: the three original starter tests pass unchanged, along with the new ones (20 passed).
+**One suggestion I did not accept as written:** The original check_guess function (which was also written by AI) returned two things at once, the result and the message. It also had a try/except that quietly switched to comparing text whenever something went wrong. We didn't keep it that way. The starter tests check `check_guess(50, 50) == "Win"`, so they expect just the result, and returning two things meant those tests could never pass. The try/except was also hiding the real bug. Instead of crashing and showing an error, it just gave wrong hints, which made it really hard to figure out what was going on. Now check_guess only returns "Win", "Too High" or "Too Low" and always compares numbers. The message comes from a separate small function. I checked this by running pytest, and the 3 original starter tests pass without changing them.
 
 ---
 
@@ -43,34 +43,32 @@ Document at least 3 bugs you found. Add rows as needed.
   and what it showed you about your code.
 - Did AI help you design or understand any tests? How?
 
-**How I decided a bug was really fixed:** A bug counted as fixed only when two things were true. First, a pytest test that targets that exact bug had to pass. Second, the same input from my Bug Reproduction Log had to behave correctly in the game itself. For bugs that are only about what the screen shows, like the stale "Attempts left" and the debug panel lagging, a unit test can't see the problem. For those I relied on replaying the game.
+I counted a bug as fixed when there was a test for it that passed, and when the same input from my bug log worked correctly in the game. Some bugs, like "Attempts left" not updating or the debug section showing my guess late, are about what shows up on the screen, and a normal test can't really catch that. For those I had to go by how the game actually behaved.
 
-**pytest evidence:** I kept the 3 starter tests in `tests/test_game_logic.py` and added 17 new ones, one group per bug. A few examples:
-- `test_too_high_hint_says_go_lower`: guess 60, secret 50 → "Too High" with the message "Go LOWER!" (backwards hints)
-- `test_string_secret_is_compared_as_a_number`: `check_guess(9, "80")` → "Too Low" (string comparison bug)
-- `test_negative_guess_is_rejected`: `parse_guess("-50", 1, 100)` is rejected with "Your guess must be between 1 and 100." (negative guesses)
-- `test_decimal_guess_is_rejected_not_truncated`: "50.9" is rejected instead of silently becoming 50
-- `test_wrong_guesses_always_cost_5_points`: "Too High" no longer adds points on even attempts
+We kept the 3 starter tests and added 17 more, so 20 in total. Some of the ones I think are most useful:
+- Guess 60 with a secret of 50 should say "Go LOWER"
+- Comparing 9 to "80" should be "Too Low" (this checks the text comparison bug)
+- A guess of -50 should be rejected with "Your guess must be between 1 and 100."
+- 50.9 should be rejected instead of turning into 50
+- A wrong guess should always cost 5 points
 
-Running `python -m pytest -v` printed `20 passed`. To check that the tests really catch the bug, the two hint messages were swapped back on a temporary copy of the code. The result was `3 failed, 17 passed`, and the 3 failures were exactly the hint tests, which shows they are testing the right thing.
+Running `python -m pytest -v` showed **20 passed**. One thing I found interesting: to make sure the tests actually work, we put the hint bug back on purpose in a copy of the code. Exactly the 3 hint tests failed. That showed me a test is only useful if it can actually fail when the bug is there.
 
-**Game replay evidence:** The game was replayed with Streamlit's testing tool (`AppTest`), using the inputs from my bug log:
+We also replayed the game using my inputs from the bug log:
 
-| Input (secret) | Result after fix |
+| What I did | What happens now |
 |---|---|
-| Fresh game, Normal | "Attempts left: 8" (was 7) |
-| 65 (89) | "Go HIGHER!", attempts left drops to 7 right away, and the debug history shows `[65]` immediately |
-| 95 (89) | "Go LOWER!", attempts left 6 |
-| -50 | "Your guess must be between 1 and 100.", and no attempt is used |
-| 50.9 | "Please enter a whole number.", and no attempt is used |
-| 8th wrong guess | "Out of attempts!" only after all 8 guesses, attempts left 0 |
-| New Game | status back to playing, 8 attempts, score 0, empty history (was stuck on "Game over") |
-| 42 (42) on first try | "You won!" with a score of 100 |
-| Switch to Hard | range 1 to 200, new secret inside the range |
+| Started a new game on Normal | Shows 8 attempts left (was 7) |
+| Guessed 65 (secret 89) | Says "Go HIGHER", attempts go down to 7 right away, and the guess shows in the debug section right away |
+| Guessed 95 (secret 89) | Says "Go LOWER" |
+| Guessed -50 | Error message, and it doesn't use up an attempt |
+| Guessed 50.9 | Asks for a whole number, and it doesn't use up an attempt |
+| Used all 8 guesses | Only then says "Out of attempts!" |
+| Clicked New Game | Starts a new game with 8 attempts and score 0 (before, it was stuck on "Game over") |
+| Guessed right on the first try | "You won!" with a score of 100 |
+| Switched to Hard | Range is now 1 to 200 |
 
-The app also started without errors using `python -m streamlit run app.py`.
-
-**How AI helped with the tests:** Claude wrote the tests, and each one targets a single bug from my log, including my exact 65 vs 89 case. The tests helped me understand something about the code. The starter tests expected `check_guess` to return just `"Win"`, but the original code returned a tuple, so those tests could never have passed. That is why the refactor changed what `check_guess` returns. Claude also added a `pytest.ini` with `pythonpath = .`, because without it the tests in `tests/` could not import `logic_utils.py`. The AI also made a mistake I had to watch for. Its first attempt at the game replay failed because of an import path error and a 3-second timeout. That was a problem with the test harness, not with the game, and it had to be fixed before the results meant anything.
+The AI helped a lot with the tests. It wrote them, and each one is tied to a bug I found, including my 65 vs 89 case. It also explained why the starter tests could never pass with the old code. One more thing I learned: the tests couldn't even find logic_utils.py at first, so Claude added a small pytest.ini file to fix that. It also didn't get everything right the first time. Its first try at replaying the game failed because of a setup problem, and it had to fix that before the results meant anything. That reminded me to check what the AI says instead of just believing it.
 
 ---
 
@@ -78,7 +76,7 @@ The app also started without errors using `python -m streamlit run app.py`.
 
 - How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
 
-Every time you click a button or type in a box, Streamlit runs your whole Python script again from top to bottom. That is a "rerun". Normal variables are rebuilt from scratch each time, so a line like `secret = random.randint(1, 100)` would pick a new secret on every click. `st.session_state` is like a notebook that survives between reruns. You check `if "secret" not in st.session_state` and set it only the first time, and after that it stays the same. The biggest lesson for me was that *order matters* because the script runs top to bottom. The "Attempts left" box and the debug panel were drawn before the code that processed my guess, so they always showed the previous turn. I thought the counter was broken, but it was really a display-order problem. We fixed it with `st.empty()` placeholders that are filled in at the end of the script. I also learned that session state only changes when you change it. The "New Game" button reset `attempts` but forgot `status`, so on the next rerun the game still thought it was over.
+Every time you click a button or type something, Streamlit runs your whole Python file again from the top. That's called a rerun. So any normal variable gets reset every time. If you pick the secret number with random in a normal variable, you get a new secret on every click. Session state is like a notebook that Streamlit keeps between reruns, so things like the secret, score and attempts don't get lost. The biggest thing I learned is that the order of the code really matters. The "Attempts left" box and the debug section were drawn before the code that handled my guess, so they always showed old information from the turn before. I thought the counter was broken, but it was really just showing things in the wrong order. Also, session state only changes if you change it yourself. The New Game button reset the attempts but forgot to reset the "lost" status, so the game still thought it was over.
 
 ---
 
@@ -89,8 +87,8 @@ Every time you click a button or type in a box, Streamlit runs your whole Python
 - What is one thing you would do differently next time you work with AI on a coding task?
 - In one or two sentences, describe how this project changed the way you think about AI generated code.
 
-**A habit I want to reuse:** Write down each bug as a reproducible case (input, expected result, actual result) *before* fixing anything, then turn each case into a pytest test. My bug log row "65 with a secret of 89 → Go Lower" became `test_user_reported_case_65_vs_89_says_go_higher`. That way I wasn't just trusting that the fix worked, I had proof that would catch the bug if it came back. I also want to keep checking that a test can fail. Swapping the hint messages back made exactly the 3 hint tests fail, which showed me the tests were really checking the right thing.
+A habit I want to keep is writing down each bug with what I typed, what I expected and what actually happened, and then turning it into a test. My 65 vs 89 bug turned into a real test, so if that bug ever comes back, I'll know right away. I also want to keep checking that my tests can fail, not just that they pass.
 
-**What I would do differently:** I gave the AI all my bugs in one big message and let it fix everything in one pass. The assignment suggested one chat per bug, and next time I would follow that and work on smaller pieces. Big changes across several files are harder to review line by line. I also ended up with fixes I didn't ask for, like changing Hard's range to 1–200, which I accepted without really deciding on them myself. I would also play the game myself after each fix instead of relying only on automated checks.
+Next time, I would work on one bug at a time instead of giving the AI everything at once. The assignment said to use a separate chat for each bug, and I see why now. When the AI changes a lot of files at once, it's harder to read through and understand every change. Some changes also happened that I didn't ask for, like making Hard go up to 200, and I just went with them. I would also play the game myself after each fix instead of only trusting the automated checks.
 
-**How this project changed my view of AI-generated code:** AI-generated code can look clean and confident ("production-ready") while hiding bugs that only appear when you actually use it, like the `try/except` that silently compared numbers as text. I now treat AI code, including code from my own assistant, as a draft to review and test, not as a finished answer.
+This project showed me that AI code can look clean and say it's "production-ready" and still be full of bugs. From now on I'll treat AI code as a first draft that I need to test and understand, not as a finished answer.
