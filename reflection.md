@@ -8,15 +8,17 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 - List at least two concrete bugs you noticed at the start  
   (for example: "the hints were backwards").
 
+As I enter my first guess such as 65 and clicked submit it gave me a hint to go lower. As I kept guessing lower number, it kept telling me to go lower and eventually I was out of attempts and the actual answer was higher than my first guess and the hints took me completely on the wrong track. Also when i click the "New Game" button, it doesn't work and just keeps saying that I am out of attempts. The hints were never accurate and they were in fact giving the opposite hints. I alse see that when I hit "submit answer" button, the guess doesn't reflect immediately in the developer debug info section and when I put in the second attempt, thats when the first guess shows up in the debug section. The last error that I saw is that the attempts left shows 7 to begin with and when i hit the first submit, it still stays at 7 and it goes down to 1 attampt left and says "Out of attempts!". I am sure there is an error in the attempts counting function of the code. The game also accepts negative guesses such as -50 and also says "Go Lower" funnily. 
+
 **Bug Reproduction Log**
 
 Document at least 3 bugs you found. Add rows as needed.
 
 | Input | Expected Behavior | Actual Behavior | Console Output / Error |
 |-------|-------------------|-----------------|------------------------|
-| | | | |
-| | | | |
-| | | | |
+|65(89) | Go Higher         | Go Lower        | Out of attempts! The secret was 89. Score: -35
+| 5(79) | Go Lower          | Go Higher       | None
+|-50(75)| Go Lower          | Go Higher       | None
 
 ---
 
